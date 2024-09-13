@@ -75,35 +75,6 @@ func parseFile(fileLines []string) {
 	fmt.Println(sum)
 }
 
-// func computeFile(fileLines []string) ([]string, int) {
-// 	for lineNo, line := range fileLines {
-// 		fmt.Println("current Line parsed", line, "at index", lineNo)
-// 		numberOfCardToAdd := parseLine(line)
-// 		fmt.Println("number of card to add", numberOfCardToAdd)
-//
-// 		var gamesToAdd []string
-//
-// 		for j := 0; j < numberOfCardToAdd; j++ { // 1, 2, 3, 4 next card needs to be added
-// 			gameNo := getGameNo(line) // gameNo of game
-// 			gameNoToInsert := gameNo + j + 1
-// 			gameToInsert := fileLines[getLineNoOfFirstGame(gameNoToInsert, fileLines)]
-// 			gamesToAdd = append(gamesToAdd, gameToInsert)
-// 		}
-//
-// 		for _, gameToAdd := range gamesToAdd {
-// 			gameNo := getGameNo(gameToAdd)
-// 			indexFirstFound := getLineNoOfFirstGame(gameNo, fileLines)
-// 			fileLines = slices.Insert(fileLines, indexFirstFound, gameToAdd)
-// 		}
-//
-// 		fmt.Println(gamesToAdd)
-// 		fmt.Println("END OF ADD", fileLines)
-//
-// 	}
-// 	fmt.Println(fileLines)
-// 	return fileLines, 0
-// }
-
 func getGameNo(line string) int {
 	gameNo := strings.Fields(line[0:8])[1]
 	gameNoAsInt, _ := strconv.Atoi(gameNo)
