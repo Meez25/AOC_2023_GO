@@ -120,37 +120,76 @@ func generateResult(seeds string, computedMaps []inputMap) int {
 		seedsAsIntList = append(seedsAsIntList, asInt)
 	}
 
-	seedToSoil := generateCompleteMap(computedMaps[0])
-	soilToFertilizer := generateCompleteMap(computedMaps[1])
-	fertizilerToWater := generateCompleteMap(computedMaps[2])
-	waterToLight := generateCompleteMap(computedMaps[3])
-	lightToTemperature := generateCompleteMap(computedMaps[4])
-	temperatureToHumidity := generateCompleteMap(computedMaps[5])
-	humidityToLocation := generateCompleteMap(computedMaps[6])
+	generatedSeeds1 := generateMapOutput(computedMaps[0], seedsAsIntList)
+	generatedSeeds2 := generateMapOutput(computedMaps[1], generatedSeeds1)
+	generatedSeeds3 := generateMapOutput(computedMaps[2], generatedSeeds2)
+	generatedSeeds4 := generateMapOutput(computedMaps[3], generatedSeeds3)
+	generatedSeeds5 := generateMapOutput(computedMaps[4], generatedSeeds4)
+	generatedSeeds6 := generateMapOutput(computedMaps[5], generatedSeeds5)
+	generatedSeeds7 := generateMapOutput(computedMaps[6], generatedSeeds6)
 
-	var pipeline = []computedInputMap{
-		seedToSoil,
-		soilToFertilizer,
-		fertizilerToWater,
-		waterToLight,
-		lightToTemperature,
-		temperatureToHumidity,
-		humidityToLocation,
-	}
+	// fertizilerToWater := generateCompleteMap(computedMaps[2])
+	// waterToLight := generateCompleteMap(computedMaps[3])
+	// lightToTemperature := generateCompleteMap(computedMaps[4])
+	// temperatureToHumidity := generateCompleteMap(computedMaps[5])
+	// humidityToLocation := generateCompleteMap(computedMaps[6])
 
-	for _, seed := range seedsAsIntList {
-		result := seed
-		for _, processor := range pipeline {
-			result = processor.getValue(result)
-		}
-		if min == -1 {
-			min = result
-		} else {
-			min = result
+	// var pipeline = []computedInputMap{
+	// 	seedToSoil,
+	// 	soilToFertilizer,
+	// 	fertizilerToWater,
+	// 	waterToLight,
+	// 	lightToTemperature,
+	// 	temperatureToHumidity,
+	// 	humidityToLocation,
+	// }
+	//
+
+	for _, seed := range generatedSeeds7 {
+		if min == -1 || seed < min {
+			min = seed
 		}
 	}
 
 	return min
+}
+
+func generateMapOutput(input inputMap, seeds []int) []int {
+	var computerSeeds []int
+
+	var inputValues []string
+	inputValues = input.values
+
+	for _, seed := range seeds {
+		added := false
+		isRelevant := true
+		if !added {
+			for _, line := range inputValues {
+				if isRelevant {
+					sourceRangeStart, _ := strconv.Atoi(strings.Fields(line)[1])
+					destinationRangeStart, _ := strconv.Atoi(strings.Fields(line)[0])
+					rangeLength, _ := strconv.Atoi(strings.Fields(line)[2])
+
+					// Check if it's even relevant to check this line
+					// fmt.Println(sourceRangeStart, sourceRangeStart+rangeLength)
+					// fmt.Println(destinationRangeStart, destinationRangeStart+rangeLength)
+
+					for i := 0; i < rangeLength; i++ {
+						if seed == sourceRangeStart+i && !added {
+							computerSeeds = append(computerSeeds, destinationRangeStart+i)
+							added = true
+						}
+					}
+				}
+			}
+		}
+		if !added {
+			computerSeeds = append(computerSeeds, seed)
+			added = true
+		}
+	}
+	fmt.Println("computerSeeds", computerSeeds)
+	return computerSeeds
 }
 
 func generateCompleteMap(input inputMap) computedInputMap {
