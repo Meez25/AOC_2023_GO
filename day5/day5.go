@@ -1,210 +1,99 @@
 package day5
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
-type inputMap struct {
-	name   string
-	values []string
+type seedsRange struct {
+	start int
+	size  int
 }
 
-type computedInputMap struct {
-	name   string
-	values map[int]int
+type mapRange struct {
+	start       int
+	destination int
+	size        int
 }
 
-func (c *computedInputMap) getValue(inputValue int) int {
-	result, ok := c.values[inputValue]
-	if !ok {
-		return inputValue
-	} else {
-		return result
-	}
-}
-
-func newInputMap() inputMap {
-	return inputMap{}
-}
-
-func newComputerInputMap() computedInputMap {
-	values := make(map[int]int)
-	name := "Empty"
-	return computedInputMap{name: name, values: values}
+type mapRangeBlock struct {
+	block []mapRange
 }
 
 func Day5() {
-	var seeds string
-	var rawInstructions []string
-
-	file, err := os.Open("./day5/input.txt")
+	file, err := os.ReadFile("./day5/input.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer file.Close()
+	seeds, values, _ := bytes.Cut(file, []byte("\n"))
+	seedsAsStringList := strings.Fields(strings.Split(string(seeds), ":")[1])
+	var seedsAsIntList []seedsRange
 
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		fmt.Println(line)
-		if strings.Contains(line, "seeds") {
-			seeds = line[7:]
-		} else if len(line) == 0 {
-		} else {
-			rawInstructions = append(rawInstructions, line)
-		}
+	for i := 0; i < len(seedsAsStringList); i = i + 2 {
+		start, _ := strconv.Atoi(seedsAsStringList[i])
+		end, _ := strconv.Atoi(seedsAsStringList[i+1])
+		seedsAsIntList = append(seedsAsIntList, seedsRange{start, end})
 	}
 
-	fmt.Println("Seeds :", seeds)
-	parsedInstructions := parseInstructions(rawInstructions)
+	table := bytes.Split(values, []byte("\n\n"))
 
-	result := generateResult(seeds, parsedInstructions)
+	var blockOfMap []mapRangeBlock
 
-	fmt.Println(result)
-
-}
-
-func parseInstructions(rawInstructions []string) []inputMap {
-	var parsedInstructions []inputMap
-	inputMap := newInputMap()
-
-	for i, instructionLine := range rawInstructions {
-		asRune := []rune(instructionLine)
-
-		if i == len(rawInstructions)-1 {
-			startWithDigit := unicode.IsDigit(asRune[0])
-			if !startWithDigit {
-				inputMap.name = instructionLine
-			} else {
-				inputMap.values = append(inputMap.values, instructionLine)
-				parsedInstructions = append(parsedInstructions, inputMap)
-				inputMap = newInputMap()
-
-			}
-			break
+	for i := 0; i < len(table); i++ {
+		var formattedMap []mapRange
+		if table[i][0] == 10 {
+			table[i][0] = 0
 		}
-
-		nextLineAsRune := []rune(rawInstructions[i+1])
-		nextLineStartWithDigit := unicode.IsDigit(nextLineAsRune[0])
-		startWithDigit := unicode.IsDigit(asRune[0])
-		if !startWithDigit {
-			inputMap.name = instructionLine
-		} else {
-			inputMap.values = append(inputMap.values, instructionLine)
-			if !nextLineStartWithDigit {
-				parsedInstructions = append(parsedInstructions, inputMap)
-				inputMap = newInputMap()
-			}
+		if table[i][len(table[i])-1] == 10 {
+			table[i][len(table[i])-1] = 0
 		}
-
-	}
-	return parsedInstructions
-}
-
-func generateResult(seeds string, computedMaps []inputMap) int {
-	min := -1
-
-	var seedsAsIntList []int
-
-	seedsString := strings.Fields(seeds)
-
-	for _, value := range seedsString {
-		asInt, _ := strconv.Atoi(value)
-		seedsAsIntList = append(seedsAsIntList, asInt)
-	}
-
-	generatedSeeds1 := generateMapOutput(computedMaps[0], seedsAsIntList)
-	generatedSeeds2 := generateMapOutput(computedMaps[1], generatedSeeds1)
-	generatedSeeds3 := generateMapOutput(computedMaps[2], generatedSeeds2)
-	generatedSeeds4 := generateMapOutput(computedMaps[3], generatedSeeds3)
-	generatedSeeds5 := generateMapOutput(computedMaps[4], generatedSeeds4)
-	generatedSeeds6 := generateMapOutput(computedMaps[5], generatedSeeds5)
-	generatedSeeds7 := generateMapOutput(computedMaps[6], generatedSeeds6)
-
-	// fertizilerToWater := generateCompleteMap(computedMaps[2])
-	// waterToLight := generateCompleteMap(computedMaps[3])
-	// lightToTemperature := generateCompleteMap(computedMaps[4])
-	// temperatureToHumidity := generateCompleteMap(computedMaps[5])
-	// humidityToLocation := generateCompleteMap(computedMaps[6])
-
-	// var pipeline = []computedInputMap{
-	// 	seedToSoil,
-	// 	soilToFertilizer,
-	// 	fertizilerToWater,
-	// 	waterToLight,
-	// 	lightToTemperature,
-	// 	temperatureToHumidity,
-	// 	humidityToLocation,
-	// }
-	//
-
-	for _, seed := range generatedSeeds7 {
-		if min == -1 || seed < min {
-			min = seed
+		block := bytes.Split(table[i], []byte("\n"))
+		for i := 1; i < len(block); i++ {
+			line := strings.Fields(string(block[i]))
+			start, _ := strconv.Atoi(line[1])
+			size, _ := strconv.Atoi(line[2])
+			destination, _ := strconv.Atoi(line[0])
+			formattedMap = append(formattedMap, mapRange{destination, start, size})
 		}
+		blockOfMap = append(blockOfMap, mapRangeBlock{formattedMap})
 	}
+	// fmt.Println(seedsAsIntList)
+	// fmt.Println(blockOfMap)
 
-	return min
-}
-
-func generateMapOutput(input inputMap, seeds []int) []int {
-	var computerSeeds []int
-
-	var inputValues []string
-	inputValues = input.values
-
-	for _, seed := range seeds {
-		added := false
-		isRelevant := true
-		if !added {
-			for _, line := range inputValues {
-				if isRelevant {
-					sourceRangeStart, _ := strconv.Atoi(strings.Fields(line)[1])
-					destinationRangeStart, _ := strconv.Atoi(strings.Fields(line)[0])
-					rangeLength, _ := strconv.Atoi(strings.Fields(line)[2])
-
-					// Check if it's even relevant to check this line
-					// fmt.Println(sourceRangeStart, sourceRangeStart+rangeLength)
-					// fmt.Println(destinationRangeStart, destinationRangeStart+rangeLength)
-
-					for i := 0; i < rangeLength; i++ {
-						if seed == sourceRangeStart+i && !added {
-							computerSeeds = append(computerSeeds, destinationRangeStart+i)
-							added = true
-						}
-					}
+	for _, seed := range seedsAsIntList {
+		var newSeeds []seedsRange
+		for _, formattedMap := range blockOfMap {
+			fmt.Println("Parse each seed in each block")
+			for _, mapRange := range formattedMap.block {
+				originalSeed := seed
+				var max int
+				var min int
+				// If is range, do the translation
+				if mapRange.start < originalSeed.size+originalSeed.start {
+					fmt.Println("Intersection", "seed :", originalSeed.start, originalSeed.start+originalSeed.size, "range", mapRange.start, mapRange.destination)
+					min = mapRange.start
 				}
+				if originalSeed.start+originalSeed.size < mapRange.destination {
+					fmt.Println("Intersection", "seed :", originalSeed.start, originalSeed.start+originalSeed.size, "range", mapRange.start, mapRange.destination)
+					max = mapRange.destination
+				} else {
+					min = seed.start
+					max = seed.size
+					fmt.Println("Sortir l'input tel quel")
+					newSeeds = append(newSeeds, seedsRange{min, max})
+				}
+
+				fmt.Println("Added seed", seedsRange{min, max})
+
+				// If not in range, do nothing
 			}
 		}
-		if !added {
-			computerSeeds = append(computerSeeds, seed)
-			added = true
-		}
-	}
-	fmt.Println("computerSeeds", computerSeeds)
-	return computerSeeds
-}
-
-func generateCompleteMap(input inputMap) computedInputMap {
-	completedInputMap := newComputerInputMap()
-	var inputValues []string
-	inputValues = input.values
-	completedInputMap.name = input.name
-	for _, line := range inputValues {
-		sourceRangeStart, _ := strconv.Atoi(strings.Fields(line)[1])
-		destinationRangeStart, _ := strconv.Atoi(strings.Fields(line)[0])
-		rangeLength, _ := strconv.Atoi(strings.Fields(line)[2])
-		for i := 0; i < rangeLength; i++ {
-			completedInputMap.values[sourceRangeStart+i] = destinationRangeStart + i
-		}
+		fmt.Println(newSeeds)
+		seedsAsIntList = newSeeds
 	}
 
-	return completedInputMap
 }
