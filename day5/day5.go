@@ -1,99 +1,125 @@
 package day5
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
 
-type seedsRange struct {
-	start int
-	size  int
-}
-
-type mapRange struct {
-	start       int
-	destination int
-	size        int
-}
-
-type mapRangeBlock struct {
-	block []mapRange
+type seedRange struct {
+	start, end int
 }
 
 func Day5() {
-	file, err := os.ReadFile("./day5/input.txt")
+	content, err := os.ReadFile("./day5/input.txt")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error reading file:", err)
 		return
 	}
-	seeds, values, _ := bytes.Cut(file, []byte("\n"))
-	seedsAsStringList := strings.Fields(strings.Split(string(seeds), ":")[1])
-	var seedsAsIntList []seedsRange
 
-	for i := 0; i < len(seedsAsStringList); i = i + 2 {
-		start, _ := strconv.Atoi(seedsAsStringList[i])
-		end, _ := strconv.Atoi(seedsAsStringList[i+1])
-		seedsAsIntList = append(seedsAsIntList, seedsRange{start, end})
+	parts := strings.Split(string(content), "\n\n")
+	if len(parts) < 2 {
+		fmt.Println("Invalid input format")
+		return
 	}
 
-	table := bytes.Split(values, []byte("\n\n"))
-
-	var blockOfMap []mapRangeBlock
-
-	for i := 0; i < len(table); i++ {
-		var formattedMap []mapRange
-		if table[i][0] == 10 {
-			table[i][0] = 0
+	// Parse seeds
+	seedsInput := strings.Fields(strings.SplitN(parts[0], ":", 2)[1])
+	var seeds []seedRange
+	for i := 0; i < len(seedsInput); i += 2 {
+		if i+1 >= len(seedsInput) {
+			fmt.Println("Invalid seed input")
+			return
 		}
-		if table[i][len(table[i])-1] == 10 {
-			table[i][len(table[i])-1] = 0
+		start, err1 := strconv.Atoi(seedsInput[i])
+		length, err2 := strconv.Atoi(seedsInput[i+1])
+		if err1 != nil || err2 != nil {
+			fmt.Println("Invalid seed numbers")
+			return
 		}
-		block := bytes.Split(table[i], []byte("\n"))
-		for i := 1; i < len(block); i++ {
-			line := strings.Fields(string(block[i]))
-			start, _ := strconv.Atoi(line[1])
-			size, _ := strconv.Atoi(line[2])
-			destination, _ := strconv.Atoi(line[0])
-			formattedMap = append(formattedMap, mapRange{destination, start, size})
-		}
-		blockOfMap = append(blockOfMap, mapRangeBlock{formattedMap})
+		seeds = append(seeds, seedRange{start, start + length})
 	}
-	// fmt.Println(seedsAsIntList)
-	// fmt.Println(blockOfMap)
 
-	for _, seed := range seedsAsIntList {
-		var newSeeds []seedsRange
-		for _, formattedMap := range blockOfMap {
-			fmt.Println("Parse each seed in each block")
-			for _, mapRange := range formattedMap.block {
-				originalSeed := seed
-				var max int
-				var min int
-				// If is range, do the translation
-				if mapRange.start < originalSeed.size+originalSeed.start {
-					fmt.Println("Intersection", "seed :", originalSeed.start, originalSeed.start+originalSeed.size, "range", mapRange.start, mapRange.destination)
-					min = mapRange.start
+	// Process each mapping block
+	for _, block := range parts[1:] {
+		var ranges [][]int
+		lines := strings.Split(block, "\n")
+		for _, line := range lines[1:] { // Skip the header line
+			if line == "" {
+				continue // Skip empty lines
+			}
+			var r []int
+			for _, num := range strings.Fields(line) {
+				n, err := strconv.Atoi(num)
+				if err != nil {
+					fmt.Printf("Invalid number in mapping: %s\n", num)
+					return
 				}
-				if originalSeed.start+originalSeed.size < mapRange.destination {
-					fmt.Println("Intersection", "seed :", originalSeed.start, originalSeed.start+originalSeed.size, "range", mapRange.start, mapRange.destination)
-					max = mapRange.destination
-				} else {
-					min = seed.start
-					max = seed.size
-					fmt.Println("Sortir l'input tel quel")
-					newSeeds = append(newSeeds, seedsRange{min, max})
+				r = append(r, n)
+			}
+			if len(r) != 3 {
+				fmt.Printf("Invalid mapping format: %v\n", r)
+				return
+			}
+			ranges = append(ranges, r)
+		}
+
+		var new []seedRange
+		for len(seeds) > 0 {
+			s, e := seeds[0].start, seeds[0].end
+			seeds = seeds[1:]
+			mapped := false
+
+			for _, r := range ranges {
+				a, b, c := r[0], r[1], r[2]
+				os := max(s, b)
+				oe := min(e, b+c)
+				if os < oe {
+					new = append(new, seedRange{os - b + a, oe - b + a})
+					if os > s {
+						seeds = append(seeds, seedRange{s, os})
+					}
+					if e > oe {
+						seeds = append(seeds, seedRange{oe, e})
+					}
+					mapped = true
+					break
 				}
+			}
 
-				fmt.Println("Added seed", seedsRange{min, max})
-
-				// If not in range, do nothing
+			if !mapped {
+				new = append(new, seedRange{s, e})
 			}
 		}
-		fmt.Println(newSeeds)
-		seedsAsIntList = newSeeds
+		seeds = new
 	}
 
+	if len(seeds) == 0 {
+		fmt.Println("No valid seed ranges found")
+		return
+	}
+
+	minLocation := seeds[0].start
+	for _, sr := range seeds {
+		if sr.start < minLocation {
+			minLocation = sr.start
+		}
+	}
+
+	fmt.Println("Minimum location:", minLocation)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
